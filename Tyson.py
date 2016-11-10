@@ -18,7 +18,8 @@ def brightnessFiltering(img):
 
 def shapeFiltering(contourList):
     """
-    This function receives a list of contours and filters out the contours that aren't shaped like U's
+    This function receives a list of contours and filters
+    out the contours that aren't approximatly square
     """
 
     outputList = []
@@ -26,12 +27,14 @@ def shapeFiltering(contourList):
         contourList = [contourList]
 
     for currentContour in contourList:
-        currentBoundingRect = cv2.boundingRect(currentContour)
-        w = currentBoundingRect[0][0] - currentBoundingRect[0][1]
-        h = currentBoundingRect[0][0] - currentBoundingRect[1][0]
+        _, _, w, h = cv2.boundingRect(currentContour)
+        #currentBoundingRect = cv2.boundingRect(currentContour)
+        #w = currentBoundingRect[0][0] - currentBoundingRect[0][1]
+        #h = currentBoundingRect[0][0] - currentBoundingRect[1][0]
         minEdge = min(h, w)
         maxEdge = max(h, w)
-        if minEdge * max_bounding_rect_edge_ratio > maxEdge:
+
+        if maxEdge / minEdge < max_bounding_rect_edge_ratio:
             outputList.append(currentContour)
 
     return outputList
@@ -49,21 +52,18 @@ def sortContours(contour_list):
     return sorted_list
 
 def vision():
-
-    img = cv2.imread(r'example.jpg', 1)
+    img = cv2.imread(r'test.png', 1)
 
     if img is not None:
-        # imgMask = brightnessFiltering(img)
-
         hsv = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-        lowerLimit = numpy.array([0, 0, 0])
+        lowerLimit = numpy.array([0, 0, 100])
         upperLimit = numpy.array([255, 255, 255])
         imgMask = cv2.inRange(hsv, lowerLimit, upperLimit)
 
-        currentContours = cv2.findContours(imgMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[1]
+        currentContours = cv2.findContours(imgMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
 
         print "Number of contours = " + str(len(currentContours))
-
+        #YOLO#SWAG#DOPE
         # Filtering the current contours by shape
         contourList = shapeFiltering(currentContours)
 
@@ -72,14 +72,19 @@ def vision():
 
         if len(contourList) == 1:
             print "Found only one good contour!"
-            
+
         for currentContour in contourList:
             print currentContour
 
+            # drawing the contour
+            blankImage = numpy.zeros((480 ,640 ,3), numpy.uint8)
+            cv2.drawContours(blankImage, [currentContour], -1, (255,255,0), 3)
+            cv2.imshow("imaguuuuuu", blankImage)
+            cv2.waitKey()
+
+
 def main():
-    while True:
-        vision()
-        time.sleep(0.1)
+    vision()
 
 if __name__ == "__main__":
     main()
