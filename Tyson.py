@@ -2,8 +2,8 @@ import numpy
 import cv2
 import time
 
-MAX_BOUNDING_RECT_AREA_DIFFERENCE = 1.15
-AREA_THRESHOLD = 400
+MAX_BOUNDING_RECT_AREA_DIFFERENCE = 1.25
+AREA_THRESHOLD = 500
 
 def shapeFiltering(contourList):
     """
@@ -46,26 +46,54 @@ def sortContours(contourList):
     this function sorts the list of retro-reflectors from big to small
     """
 
+    # If we, for some strange reason, got a single object instead of a list, put that object in a list
     if type(contourList) is not list:
         contourList = [contourList]
 
-    contourList = sorted(contourList, cmp = lambda y, x: int(cv2.contourArea(x) - cv2.contourArea(y)))
+    compareFunction = lambda y, x: int(cv2.contourArea(x) - cv2.contourArea(y))
+    contourList = sorted(contourList, cmp = compareFunction)
 
     return contourList
 
 def vision():
-    imgInBGR = cv2.imread(r'test1.jpg')
+    camera = cv2.VideoCapture(0)
+
+    # If there was a problem opening the camera, exit
+    if camera.isOpened() is False:
+        raise SystemExit("WTF! cv2.VideoCapture returned None!")
+
+    _, imgInBGR = camera.read()
+
+    picWidth = camera.get(cv2.CAP_PROP_FRAME_WIDTH)
+    picHeight = camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+    picFPS = camera.get(cv2.CAP_PROP_FPS)
+    print "fps before set: %d" % (picFPS)
+    camera.set(cv2.CAP_PROP_FPS, 15)
+    picFPS = camera.get(cv2.CAP_PROP_FPS)
+
+    print "width: %d, height: %d\nfps: %d" % (picWidth, picHeight, picFPS)
+
+    cv2.imshow("Tyson", imgInBGR)
+    while cv2.waitKey() is not ord("\n"):
+        pass
 
     # If there was a problem reading the image, exit
     if imgInBGR is None:
-        raise SystemExit("WTF! cv2.imread returned None!")
+        raise SystemExit("WTF! camera.read returned None!")
 
-    lowerLimitInHSV = numpy.array([70, 50, 0], numpy.uint8)
-    upperLimitInHSV = numpy.array([160, 255, 255], numpy.uint8)
+    lowerLimitInHSV = numpy.array([70, 40, 0], numpy.uint8)
+    upperLimitInHSV = numpy.array([160, 190, 255], numpy.uint8)
     imgInHSV = cv2.cvtColor(imgInBGR, cv2.COLOR_BGR2HSV)
     imgMask = cv2.inRange(imgInHSV, lowerLimitInHSV, upperLimitInHSV)
 
-    currentContours = cv2.findContours(imgMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
+    if cv2.__version__.startswith("3."):
+        currentContours = cv2.findContours(imgMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[1]
+    elif cv2.__version__.startswith("2."):
+        currentContours = cv2.findContours(imgMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
+    else:
+        raise SystemExit("WTF! What version of openCV are you using?")
+
 
     print "Number of contours BEFORE all filtering is " + str(len(currentContours))
     
@@ -84,8 +112,7 @@ def vision():
 
     for currentContour in currentContours:
         # drawing the contour
-        #tempImage = numpy.zeros((480 ,640 ,3), numpy.uint8)
-        tempImage = cv2.imread(r'test1.jpg')
+        tempImage = numpy.copy(imgInBGR)
         cv2.drawContours(tempImage, [currentContour], 0, (255,255,255), 3)
         cv2.imshow("tyson", tempImage)
         cv2.waitKey()
