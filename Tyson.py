@@ -4,6 +4,8 @@ import time
 
 MAX_BOUNDING_RECT_AREA_DIFFERENCE = 1.25
 AREA_THRESHOLD = 500
+HSV_LOW_LIMIT = numpy.array([70, 40, 0], numpy.uint8)
+HSV_HIGH_LIMIT = numpy.array([160, 190, 255], numpy.uint8)
 
 def shapeFiltering(contourList):
     """
@@ -64,15 +66,13 @@ def vision():
 
     _, imgInBGR = camera.read()
 
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 176)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 144)
+
     picWidth = camera.get(cv2.CAP_PROP_FRAME_WIDTH)
     picHeight = camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
-    picFPS = camera.get(cv2.CAP_PROP_FPS)
-    print "fps before set: %d" % (picFPS)
-    camera.set(cv2.CAP_PROP_FPS, 15)
-    picFPS = camera.get(cv2.CAP_PROP_FPS)
-
-    print "width: %d, height: %d\nfps: %d" % (picWidth, picHeight, picFPS)
+    print "width: %d, height: %d" % (picWidth, picHeight)
 
     cv2.imshow("Tyson", imgInBGR)
     while cv2.waitKey() is not ord("\n"):
@@ -82,10 +82,8 @@ def vision():
     if imgInBGR is None:
         raise SystemExit("WTF! camera.read returned None!")
 
-    lowerLimitInHSV = numpy.array([70, 40, 0], numpy.uint8)
-    upperLimitInHSV = numpy.array([160, 190, 255], numpy.uint8)
     imgInHSV = cv2.cvtColor(imgInBGR, cv2.COLOR_BGR2HSV)
-    imgMask = cv2.inRange(imgInHSV, lowerLimitInHSV, upperLimitInHSV)
+    imgMask = cv2.inRange(imgInHSV, HSV_LOW_LIMIT, HSV_HIGH_LIMIT)
 
     if cv2.__version__.startswith("3."):
         currentContours = cv2.findContours(imgMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[1]
