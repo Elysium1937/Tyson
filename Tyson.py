@@ -73,34 +73,16 @@ def vision():
     if camera.isOpened() is False:
         raise SystemExit("WTF! cv2.VideoCapture returned None!")
 
-<<<<<<< HEAD
     if cv2.__version__.startswith("3."):
         camera.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_WIDTH)
         camera.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_HEIGHT)
-
-        picWidth = camera.get(cv2.CAP_PROP_FRAME_WIDTH)
-        picHeight = camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
     elif cv2.__version__.startswith("2."):
         camera.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, IMG_WIDTH)
         camera.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, IMG_HEIGHT)
-=======
-    camera.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_WIDTH)
-    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_HEIGHT)
->>>>>>> 3b63e86291ff671aa85bf940c13b7a76e9058ab3
-
-        picWidth = camera.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)
-        picHeight = camera.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT)
     else:
         raise SystemExit("WTF! What version of openCV are you using?")
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 3b63e86291ff671aa85bf940c13b7a76e9058ab3
     _, imgInBGR = camera.read()
-
-    print "width: %d, height: %d" % (picWidth, picHeight)
 
     # If there was a problem reading the image, exit
     if imgInBGR is None:
