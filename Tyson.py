@@ -96,9 +96,6 @@ def vision():
     imgInBGR = cv2.line(imgInBGR, (MID_SECTION_LEFT_EDGE, 0), (MID_SECTION_LEFT_EDGE, IMG_HEIGHT), (100, 0, 120), 2)
     imgInBGR = cv2.line(imgInBGR, (MID_SECTION_RIGHT_EDGE, 0), (MID_SECTION_RIGHT_EDGE, IMG_HEIGHT), (100, 0, 120), 2)
 
-    cv2.imshow("Tyson", imgInBGR)
-    cv2.waitKey()
-
     if cv2.__version__.startswith("3."):
         currentContours = cv2.findContours(imgMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[1]
     elif cv2.__version__.startswith("2."):
