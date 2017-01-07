@@ -106,7 +106,7 @@ def vision():
     else:
         raise SystemExit("WTF! What version of openCV are you using?")
 
-    print "Number of contours BEFORE all filtering is " + str(len(currentContours))
+    print "Number of contours before all filtering is " + str(len(currentContours))
 
     # Filtering the current contours by area
     currentContours = areaFiltering(currentContours)
@@ -116,12 +116,12 @@ def vision():
     # Filtering the current contours by shape
     currentContours = shapeFiltering(currentContours)
 
-    print "Number of contours AFTER all filtering is " + str(len(currentContours))
+    print "Number of contours after shape filtering is " + str(len(currentContours))
 
     currentContours = sortBySize(currentContours)
 
     if len(currentContours) == 0:
-        print "WHERE ARE THE CONTOURS ORI!!!!!!!!!!!"
+        print "Found no Contours!"
         return
 
     roborioSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -134,25 +134,25 @@ def vision():
 
     if centerX < MID_SECTION_LEFT_EDGE:
         # Contour is on the left
-        print "Turn left if you want to live"
+        print "Turn left"
         try:
             roborioSocket.sendto("0", ("roboRIO-1937-FRC", 61937))
         except:
-            print "WTF! Couldn't send to the roborio"
+            raise SystemExit("WTF! Couldn't send to the roborio")
     elif centerX < MID_SECTION_RIGHT_EDGE:
         # Contour is in the center
-        print "Move straight if you're not gay"
+        print "Move straight"
         try:
             roborioSocket.sendto("1", ("roboRIO-1937-FRC", 61937))
         except:
-            print "WTF! Couldn't send to the roborio"
+            raise SystemExit("WTF! Couldn't send to the roborio")
     else:
         # Contour is on the right
-        print "Turn right if you like big butts and you caAnnot lie!!!!!!!!"
+        print "Turn right"
         try:
             roborioSocket.sendto("2", ("roboRIO-1937-FRC", 61937))
         except:
-            print "WTF! Couldn't send to the roborio"
+            raise SystemExit("WTF! Couldn't send to the roborio")
 
     # drawing the contour
     tempImage = numpy.copy(imgInBGR)
