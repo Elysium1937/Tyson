@@ -123,33 +123,38 @@ def vision():
 
     roborioSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    finalContour = currentContours[0]
+    firstContour = currentContours[0]
+    secondContour = currentContours[1]
 
-    # Calculating the center of the contour
-    currentMoments = cv2.moments(finalContour)
-    centerX = int(currentMoments["m10"] / currentMoments["m00"])
+    # Calculating the center's X of the first contour
+    currentMoments = cv2.moments(firstContour)
+    firstX = int(currentMoments["m10"] / currentMoments["m00"])
+
+    # Calculating the center's X of the second contour
+    currentMoments = cv2.moments(secondContour)
+    secondX = int(currentMoments["m10"] / currentMoments["m00"])
+
+    # Calculating the center of the contours
+    centerX = (firstX + secondX) / 2
 
     if centerX < MID_SECTION_LEFT_EDGE:
         # Contour is on the left
         print "Turn left"
-        try:
-            roborioSocket.sendto("0", ("roboRIO-1937-FRC", 61937))
-        except:
-            raise SystemExit("WTF! Couldn't send to the roborio")
+        currentValue = centerX / MID_SECTION_LEFT_EDGE - 1
+
     elif centerX < MID_SECTION_RIGHT_EDGE:
         # Contour is in the center
         print "Move straight"
-        try:
-            roborioSocket.sendto("1", ("roboRIO-1937-FRC", 61937))
-        except:
-            raise SystemExit("WTF! Couldn't send to the roborio")
+        currentValue = 0
     else:
         # Contour is on the right
         print "Turn right"
-        try:
-            roborioSocket.sendto("2", ("roboRIO-1937-FRC", 61937))
-        except:
-            raise SystemExit("WTF! Couldn't send to the roborio")
+        currentValue = (centerX - MID_SECTION_RIGHT_EDGE)/(IMG_WIDTH - MID_SECTION_RIGHT_EDGE)
+
+    try:
+        roborioSocket.sendto(str(currentValue), ("roboRIO-1937-FRC", 61937))
+    except:
+        raise SystemExit("WTF! Couldn't send to the roborio")
 
     # drawing the contour
     tempImage = numpy.copy(imgInBGR)
