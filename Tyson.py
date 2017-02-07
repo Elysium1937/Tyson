@@ -117,8 +117,8 @@ def vision():
 
     currentContours = sortBySize(currentContours)
 
-    if len(currentContours) == 0:
-        print "Found no Contours!"
+    if len(currentContours) < 1:
+        print "Couldn't find two contours"
         return
 
     roborioSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
