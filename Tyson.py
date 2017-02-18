@@ -11,8 +11,37 @@ IMG_WIDTH = 640
 IMG_HEIGHT = 480
 MID_SECTION_LEFT_EDGE = 7*IMG_WIDTH/20
 MID_SECTION_RIGHT_EDGE = 13*IMG_WIDTH/20
-SLEEP_CYCLE_IN_SECONDS = 0.2
+SLEEP_CYCLE_IN_SECONDS = 1
 
+def HandleSingleContour(singleContour):
+     finalContour = singleContour
+
+    # Calculating the center of the contour
+     currentMoments = cv2.moments(finalContour)
+     centerX = int(currentMoments["m10"] / currentMoments["m00"])
+
+     if centerX < MID_SECTION_LEFT_EDGE:
+         # Contour is on the left
+         print "Turn left"
+         try:
+             roborioSocket.sendto("0", ("roboRIO-1937-FRC", 61937))
+         except:
+             raise SystemExit("WTF! Couldn't send to the roborio")
+     elif centerX < MID_SECTION_RIGHT_EDGE:
+         # Contour is in the center
+         print "Move straight"
+         try:
+             roborioSocket.sendto("1", ("roboRIO-1937-FRC", 61937))
+         except:
+             raise SystemExit("WTF! Couldn't send to the roborio")
+     else:
+         # Contour is on the right
+         print "Turn right"
+         try:
+             roborioSocket.sendto("2", ("roboRIO-1937-FRC", 61937))
+         except:
+             raise SystemExit("WTF! Couldn't send to the roborio")
+         
 def shapeFiltering(contourList):
     """
     This function receives a list of contours and filters
@@ -117,8 +146,18 @@ def vision():
 
     currentContours = sortBySize(currentContours)
 
-    if len(currentContours) < 1:
-        print "Couldn't find two contours"
+    # Checking if the number of Contours is below 2 
+    if len(currentContours) < 2:
+        # If found 1 Contour, goes to a function that deals with 1 Contour
+        if len(currentContours) == 1:
+            HandleSingleContour(currentContours[0])
+            print "Found one Contour"
+        else:
+            #If found no Contours, does nothing
+            print "Couldn't find contours"
+        return
+    if len(currentContours) > 2:
+        print "WTF! Too many Contours"
         return
 
     roborioSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -156,11 +195,14 @@ def vision():
     except:
         raise SystemExit("WTF! Couldn't send to the roborio")
 
-    # drawing the contour
+    # drawing the contour - Currently useless?
+    """
     tempImage = numpy.copy(imgInBGR)
     cv2.drawContours(tempImage, [finalContour], 0, (0, 255, 0), 3)
     cv2.imshow("Tyson", tempImage)
+    """
     cv2.waitKey()
+    
 
 
 def main():
