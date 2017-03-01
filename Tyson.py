@@ -2,7 +2,6 @@ import time
 import numpy
 import cv2
 import socket
-from timeit import default_timer as timer
 import sys
 import traceback
 
@@ -16,7 +15,6 @@ MID_SECTION_LEFT_EDGE = 7*IMG_WIDTH/20
 MID_SECTION_RIGHT_EDGE = 13*IMG_WIDTH/20
 SLEEP_CYCLE_IN_SECONDS = 0.2
 roborioSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
 
 def HandleSingleContour(singleContour):
      finalContour = singleContour
@@ -39,7 +37,7 @@ def HandleSingleContour(singleContour):
 
      try:
           roborioSocket.sendto(bytes(str(ValueToSend)), ("roboRIO-1937-FRC", 61937))
-          print("Sent -------------------------------------------------Sent")  
+          print("Sent ------------------------------------------------- Sent")  
      except:
           print "Error: ",sys.exc_info()[0]
           traceback.print_exc()
@@ -103,8 +101,6 @@ def Statistics(counterLeft,counterStraight,counterRight):
                return
 
 def vision():
-    #count = 0
-    #start = timer()
     camera = cv2.VideoCapture(0)
     counterLeft = 0
     counterStraight = 0
@@ -124,10 +120,6 @@ def vision():
         raise SystemExit("WTF! What version of openCV are you using?")
 
     while True:
-         #count=count+1
-         #print "iteration " + str(count) + " time was " + str(timer()-start)
-         #start = timer()
-
          _, imgInBGR = camera.read()
 
          # If there was a problem reading the image, exit
@@ -221,7 +213,6 @@ def vision():
              raise SystemExit("WTF! Couldn't send to the roborio")
 
          # drawing the contour - Currently useless?
-         
          tempImage = numpy.copy(imgInBGR)
          cv2.drawContours(tempImage, [finalContour], 0, (0, 255, 0), 3)
          cv2.imshow("Tyson", tempImage)
@@ -232,9 +223,7 @@ def vision():
          print "Turn rights " + str(counterRight)
          time.sleep(SLEEP_CYCLE_IN_SECONDS)
 
-
 def main():
-    #roborioSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     vision()
 
 if __name__ == "__main__":
