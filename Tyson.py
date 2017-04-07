@@ -1,9 +1,9 @@
-import time
 import numpy
 import cv2
 import socket
 import sys
 import math
+import os
 
 MAX_BOUNDING_RECT_AREA_DIFFERENCE = 2
 MAXIMUM_HEIGHT_FOR_CONTOUR = 40
@@ -14,9 +14,10 @@ HSV_HIGH_LIMIT = numpy.array([100, 255, 255], numpy.uint8)
 IMG_WIDTH = 320
 IMG_HEIGHT = 240
 SLEEP_CYCLE_IN_SECONDS = 0.05
+ERROR_NOT_ENOUGH_CONTOURS = 19370
 roborioSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-
+os.system("v4l2-ctl -d /dev/video0 -c exposure_auto=1")
 
 def shapeFiltering(contourList):
     """
@@ -38,8 +39,6 @@ def shapeFiltering(contourList):
 
     return outputList
 
-
-
 def areaFiltering(contourList):
     """
     filters contours that are not above the threshold
@@ -56,8 +55,6 @@ def areaFiltering(contourList):
 
     return outputList
 
-
-
 def sortBySize(contourList):
     """
     this function sorts the list of retro-reflectors from big to small
@@ -69,48 +66,6 @@ def sortBySize(contourList):
     compareFunction = lambda y, x: int(cv2.contourArea(x) - cv2.contourArea(y))
     contourList = sorted(contourList, cmp=compareFunction)
     return contourList
-
-
-
-def checkHeight(contourList):
-    """
-    If a contour's lowest point is above our wanted threshold it couldn't possibly be the reflector thus we won't consider it one
-    """
-    
-    outputList = []
-    for contour in contourList:
-        extBot = tuple(contour[contour[:, :, 1].argmax()][0])#LOLWAT
-        if extBot[1] > MAXIMUM_HEIGHT_FOR_CONTOUR:
-            outputList.append(contour)
-    
-    return outputList
-
-
-
-def checkDistance(contourList):
-    """
-    Since the reflectors are very close to each other - two colliding contours can't possibly be two reflectors therefore one must be ignored
-    """
-    
-    outputList = []
-
-    firstContour = contourList[0]
-    secondContour = contourList[1]
-
-    # Calculating the center's X of the first contour
-    currentMoments = cv2.moments(firstContour)
-    firstX = int(currentMoments["m10"] / currentMoments["m00"])
-
-    # Calculating the center's X of the second contour
-    currentMoments = cv2.moments(secondContour)
-    secondX = int(currentMoments["m10"] / currentMoments["m00"])
-
-    if abs(firstX - secondX) > MAXIMUM_AREA_DIFFERENCE:
-        return True
-    else:
-        return False
-        
-
 
 def vision():
     camera = cv2.VideoCapture(0)
@@ -129,23 +84,20 @@ def vision():
     else:
         raise SystemExit("WTF! What version of openCV are you using?")
 
+    currentLowerColor = HSV_LOW_LIMIT
+    currentHigherColor = HSV_HIGH_LIMIT
         
     while True:
-
         _, imgInBGR = camera.read()
-        imgInBGR = imgInBGR[73:240, 0:320]  
         
         # If there was a problem reading the image, exit
         if imgInBGR is None:
             raise SystemExit("WTF! camera.read returned None!")
 
         imgInHSV = cv2.cvtColor(imgInBGR, cv2.COLOR_BGR2HSV)
-        imgMask = cv2.inRange(imgInHSV, HSV_LOW_LIMIT, HSV_HIGH_LIMIT)
+        imgMask = cv2.inRange(imgInHSV, currentLowerColor, currentHigherColor)
 
-        cv2.imwrite("ImageMask.png",imgMask)
-
-
-##      finding the contours before filtering them
+        # finding the contours before filtering them
         if cv2.__version__.startswith("3."):
            currentContours = cv2.findContours(imgMask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[1]
         elif cv2.__version__.startswith("2."):
@@ -153,17 +105,11 @@ def vision():
         else:
            raise SystemExit("WTF! What version of openCV are you using?")
 
-        #imgInBGR = imgInBGR[80:240, 0:320]
-##        if len(currentContours) == 0:
-##            cv2.imwrite("picture.png", imgInBGR)
+        if len(currentContours) == 0:
+            cv2.imwrite("picture.png", imgInBGR)
         
         # Prints the number of contours before all filtering
         print "Number of contours before all filtering is " + str(len(currentContours))
-
-        # Checking how many contours we're left with after each filter to maintain accuracy
-        # Filtering the current contours by height check
-        #currentContours = checkHeight(currentContours)
-        #print "Number of contours after height filtering is " + str(len(currentContours))
 
         # Filtering the current contours by area
         currentContours = areaFiltering(currentContours)
@@ -175,32 +121,13 @@ def vision():
 
         # Filters the contours by size (big to small)
         currentContours = sortBySize(currentContours)
-
-        # Checking if the number of Contours is below 2
         
-        if len(currentContours):
-            ValueToSend = 19370
+        if len(currentContours) < 2:
             try:
-                roborioSocket.sendto(bytes(str(int(ValueToSend))), ("roboRIO-1937-FRC", 61937))
-                #print("Sent ------------------------------------------------- Sent")  
-                continue
+                roborioSocket.sendto(bytes(str(int(ERROR_NOT_ENOUGH_CONTOURS))), ("roboRIO-1937-FRC", 61937))
             except:
                 print "Error: ",sys.exc_info()[0]
-                continue
-                #raise SystemExit("WTF! Couldn't send to the roborio")
-
-        # Checking if the two contours are too far from each other
-##        if checkDistance(currentContours):
-##            #print "The contours are too far from each other"
-##            #cv2.imwrite("picture.png", imgInBGR)
-##            ValueToSend = 1000
-##            try:
-##                roborioSocket.sendto(bytes(str(int(ValueToSend))), ("roboRIO-1937-FRC", 61937))
-##                #print("Sent ------------------------------------------------- Sent")  
-##            except:
-##                print "Error: ",sys.exc_info()[0]
-##                #raise SystemExit("WTF! Couldn't send to the roborio")
-##            #continue
+            continue
 
         firstContour = currentContours[0]
         secondContour = currentContours[1]
@@ -216,26 +143,13 @@ def vision():
         # Calculating the center of the contours
         centerX = (firstX + secondX) / 2
 
-        currentValue = (centerX * 6.25)
-        currentValue = math.floor(currentValue)
+        currentValue = math.floor(centerX * (2000/IMG_WIDTH))
 
         try:
             roborioSocket.sendto(bytes(str(currentValue)), ("roboRIO-1937-FRC", 61937))
             print("----------------We've sent "+ str(currentValue))   
         except:
             print "Error: ",sys.exc_info()[0]
-            #traceback.print_exc()             
-            #raise SystemExit("WTF! Couldn't send to the roborio")
-            #continue
-           
-        # drawing the contour - Currently useless?
-##        tempImage = numpy.copy(imgInBGR)
-##        cv2.drawContours(tempImage, [firstContour], 0, (0, 255, 0), 3)
-##        cv2.drawContours(tempImage, [secondContour], 0, (0, 255, 0), 3)
-##        cv2.imwrite("yonatan.png", tempImage)
-##
-##        time.sleep(SLEEP_CYCLE_IN_SECONDS)
-
 
 def main():
     vision()
